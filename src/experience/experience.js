@@ -3,6 +3,10 @@ import multer from "multer";
 import experienceSchema from "./experienceModal.js";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
+import json2csv from "json2csv";
+import { pipeline } from "stream";
+import fs from "fs-extra";
+const { createReadStream } = fs;
 
 const experienceRouter = express.Router();
 
@@ -67,13 +71,30 @@ experienceRouter.delete("/:id", async (req, res, next) => {
     next(error);
   }
 });
-export default experienceRouter;
 
 // ------------------------------------------ test
-experienceRouter.get("id/download", function (req, res, next) {
-  json2csv({ data: myCars, fields: fields }, function (err, csv) {
-    res.setHeader("Content-disposition", "attachment; filename=data.csv");
-    res.set("Content-Type", "text/csv");
-    res.status(200).send(csv);
-  });
+
+experienceRouter.get("/:id/download", async (req, res, next) => {
+  try {
+    res.setHeader("Content-Disposition", "attachment; filename=books.csv");
+
+    const object = await experienceSchema.findById(req.params.id);
+
+    const read = () => createReadStream(object.toObject());
+
+    const source = read();
+    console.log(source);
+    const transform = new json2csv.Transform({
+      fields: ["role", "company"],
+    });
+    const destination = res;
+
+    pipeline(source, transform, destination, (err) => {
+      if (err) console.log(err);
+    });
+  } catch (error) {
+    next(error);
+  }
 });
+
+export default experienceRouter;
