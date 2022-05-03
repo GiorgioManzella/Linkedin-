@@ -7,7 +7,10 @@ import json2csv from "json2csv";
 import { pipeline } from "stream";
 import fs from "fs-extra";
 const { createReadStream } = fs;
+import ObjectsToCsv from "objects-to-csv";
+import http from "http";
 
+import { Readable } from "stream";
 const experienceRouter = express.Router();
 
 cloudinary.config({
@@ -74,22 +77,41 @@ experienceRouter.delete("/:id", async (req, res, next) => {
 
 // ------------------------------------------ test
 
+//  experienceRouter.get("/:id/download", (req, res, next) => {
+//    try {
+//      res.setHeader("Content-Disposition", "attachment; filename=books.csv");
+
+//      const object = experienceSchema.findById(req.params.id);
+
+//      const read = createReadStream(object);
+
+//      const source = read;
+//      console.log(source);
+//      const transform = new json2csv.Transform({
+//        fields: ["role", "company"],
+//      });
+//      const destination = res;
+
+//      pipeline(source, transform, destination, (err) => {
+//        if (err) console.log(err);
+//      });
+//    } catch (error) {
+//      next(error);
+//    }
+//  });
+
 experienceRouter.get("/:id/download", async (req, res, next) => {
   try {
     res.setHeader("Content-Disposition", "attachment; filename=books.csv");
+    let experiences = await experienceSchema.find({ profile: req.params.id });
+    const stream = Readable.from(JSON.stringify(experiences));
 
-    const object = await experienceSchema.findById(req.params.id);
-
-    const read = () => createReadStream(object.toObject());
-
-    const source = read();
-    console.log(source);
     const transform = new json2csv.Transform({
-      fields: ["role", "company"],
+      fields: ["name", "bio", "title"],
     });
     const destination = res;
 
-    pipeline(source, transform, destination, (err) => {
+    pipeline(stream, transform, destination, (err) => {
       if (err) console.log(err);
     });
   } catch (error) {
