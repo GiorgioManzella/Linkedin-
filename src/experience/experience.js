@@ -30,7 +30,7 @@ const cloudinaryUload = multer({
 
 experienceRouter.get("/", async (req, res, next) => {
   try {
-    const experience = await experienceSchema.find();
+    const experience = await experienceSchema.find().populate("profile");
     res.status(200).send(experience);
   } catch (error) {
     next(error);
@@ -103,9 +103,15 @@ experienceRouter.delete("/:id", async (req, res, next) => {
 experienceRouter.get("/:id/download", async (req, res, next) => {
   try {
     res.setHeader("Content-Disposition", "attachment; filename=books.csv");
-    let experiences = await experienceSchema.find({ profile: req.params.id });
-    const stream = Readable.from(JSON.stringify(experiences));
+    const user = await experienceSchema
+      .findById(req.params.id)
+      .populate("profile");
 
+    res.send(user);
+    let experiences = await experienceSchema.find({ profile: req.params.id });
+    console.log({ profile: req.params.id });
+    console.log(experiences);
+    const stream = Readable.from(JSON.stringify(experiences));
     const transform = new json2csv.Transform({
       fields: ["name", "bio", "title"],
     });
